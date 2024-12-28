@@ -15,12 +15,12 @@ const QuoteWidget = ({
   onRefresh = () => {},
 }: QuoteWidgetProps) => {
   return (
-    <Card className="w-[400px] bg-white shadow-lg">
+    <Card className="w-full bg-white shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-6">
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex justify-between items-start">
           <div className="flex-1">
-            <p className="text-gray-800 text-lg italic">"{quote}"</p>
-            <p className="text-gray-600 mt-2">- {author}</p>
+            <p className="text-gray-800 text-lg italic mb-3">"{quote}"</p>
+            <p className="text-gray-600">- {author}</p>
           </div>
           <Button
             variant="ghost"

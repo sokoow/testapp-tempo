@@ -48,6 +48,15 @@ export async function getCheckIns(streakId: string) {
   return { data, error };
 }
 
+export async function getGoals() {
+  const { data, error } = await supabase
+    .from("goals")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+  return { data, error };
+}
+
 export async function endStreak(streakId: string) {
   const { data, error } = await supabase
     .from("streaks")

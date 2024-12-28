@@ -1,9 +1,16 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import StreakCounter from "./StreakCounter";
 import DailyCheckIn from "./DailyCheckIn";
 import ProgressVisualization from "./ProgressVisualization";
 import QuoteWidget from "./QuoteWidget";
 import EmergencySupport from "./EmergencySupport";
+import GoalTracker from "./GoalTracker";
+import CheckInHistory from "./CheckInHistory";
+import { Button } from "./ui/button";
+import { LogOut } from "lucide-react";
+import { signOut } from "@/lib/auth";
+import { getCheckIns, getGoals } from "@/lib/api";
 
 interface HomeProps {
   currentStreak?: number;
@@ -32,38 +39,78 @@ const Home = ({
   quote = "Success is not final, failure is not fatal: it is the courage to continue that counts.",
   quoteAuthor = "Winston Churchill",
 }: HomeProps) => {
+  const navigate = useNavigate();
+  const [checkIns, setCheckIns] = useState([]);
+  const [goals, setGoals] = useState([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const { data: streak } = await getCurrentStreak();
+        if (streak) {
+          const { data: checkInsData } = await getCheckIns(streak.id);
+          const { data: goalsData } = await getGoals();
+          setCheckIns(checkInsData || []);
+          setGoals(goalsData || []);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-start gap-8">
-          <div className="w-full md:w-auto">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <header className="bg-white border-b border-gray-200 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-gray-900">NoFap Dashboard</h1>
+          <Button
+            variant="ghost"
+            onClick={handleLogout}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-5 w-5" />
+            Logout
+          </Button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left Column - Primary Stats */}
+          <div className="lg:col-span-4 space-y-8">
             <StreakCounter
               currentStreak={currentStreak}
               bestStreak={bestStreak}
               lastCheckIn={lastCheckIn}
             />
-          </div>
-          <div className="w-full md:w-auto">
-            <DailyCheckIn isCompleted={isCheckInCompleted} />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="w-full">
-            <ProgressVisualization
-              streakDays={currentStreak}
-              streakHistory={streakHistory}
-              currentProgress={(currentStreak / bestStreak) * 100}
-            />
-          </div>
-          <div className="space-y-8">
+            <GoalTracker currentStreak={currentStreak} goals={goals} />
             <QuoteWidget quote={quote} author={quoteAuthor} />
             <div className="flex justify-center">
               <EmergencySupport />
             </div>
           </div>
+
+          {/* Right Column - Interactive Content */}
+          <div className="lg:col-span-8 space-y-8">
+            <DailyCheckIn isCompleted={isCheckInCompleted} />
+            <ProgressVisualization
+              streakDays={currentStreak}
+              streakHistory={streakHistory}
+              currentProgress={(currentStreak / bestStreak) * 100}
+            />
+            <CheckInHistory checkIns={checkIns} />
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
