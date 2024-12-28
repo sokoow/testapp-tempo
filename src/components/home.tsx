@@ -10,7 +10,7 @@ import CheckInHistory from "./CheckInHistory";
 import { Button } from "./ui/button";
 import { LogOut } from "lucide-react";
 import { signOut } from "@/lib/auth";
-import { getCheckIns, getGoals } from "@/lib/api";
+import { getCheckIns, getGoals, getCurrentStreak } from "@/lib/api";
 
 interface HomeProps {
   currentStreak?: number;
@@ -23,7 +23,7 @@ interface HomeProps {
 }
 
 const Home = ({
-  currentStreak = 7,
+  currentStreak: initialStreak = 7,
   bestStreak = 14,
   lastCheckIn = "2024-01-20",
   isCheckInCompleted = false,
@@ -42,27 +42,40 @@ const Home = ({
   const navigate = useNavigate();
   const [checkIns, setCheckIns] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [currentStreak, setCurrentStreak] = useState(initialStreak);
+
+  const fetchData = async () => {
+    try {
+      const { data: streak } = await getCurrentStreak();
+      if (streak) {
+        const { data: checkInsData } = await getCheckIns(streak.id);
+        const { data: goalsData } = await getGoals();
+        setCheckIns(checkInsData || []);
+        setGoals(goalsData || []);
+
+        // Calculate current streak
+        const days = Math.floor(
+          (new Date().getTime() - new Date(streak.start_date).getTime()) /
+            (1000 * 60 * 60 * 24),
+        );
+        setCurrentStreak(days);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const { data: streak } = await getCurrentStreak();
-        if (streak) {
-          const { data: checkInsData } = await getCheckIns(streak.id);
-          const { data: goalsData } = await getGoals();
-          setCheckIns(checkInsData || []);
-          setGoals(goalsData || []);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    }
     fetchData();
   }, []);
 
   const handleLogout = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  const handleGoalAdded = () => {
+    fetchData(); // Refresh data when a new goal is added
   };
 
   return (
@@ -92,7 +105,11 @@ const Home = ({
               bestStreak={bestStreak}
               lastCheckIn={lastCheckIn}
             />
-            <GoalTracker currentStreak={currentStreak} goals={goals} />
+            <GoalTracker
+              currentStreak={currentStreak}
+              goals={goals}
+              onGoalAdded={handleGoalAdded}
+            />
             <QuoteWidget quote={quote} author={quoteAuthor} />
             <div className="flex justify-center">
               <EmergencySupport />

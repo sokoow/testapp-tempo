@@ -27,16 +27,17 @@ interface Goal {
 interface GoalTrackerProps {
   currentStreak?: number;
   goals?: Goal[];
+  onGoalAdded?: () => void;
 }
 
 const GoalTracker = ({
   currentStreak = 0,
   goals: initialGoals = [],
+  onGoalAdded = () => {},
 }: GoalTrackerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [targetDays, setTargetDays] = useState("");
-  const [goals, setGoals] = useState<Goal[]>(initialGoals);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -45,18 +46,16 @@ const GoalTracker = ({
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("goals")
-        .insert([{ title, target_days: parseInt(targetDays) }])
-        .select()
-        .single();
+        .insert([{ title, target_days: parseInt(targetDays) }]);
 
       if (error) throw error;
 
-      setGoals([...goals, data]);
       setIsOpen(false);
       setTitle("");
       setTargetDays("");
+      onGoalAdded(); // Notify parent to refresh goals
 
       toast({
         title: "Goal created!",
@@ -124,12 +123,12 @@ const GoalTracker = ({
         </div>
 
         <div className="space-y-4">
-          {goals.length === 0 ? (
+          {initialGoals.length === 0 ? (
             <p className="text-center text-gray-500 py-4">
               No goals set yet. Create your first goal!
             </p>
           ) : (
-            goals.map((goal) => {
+            initialGoals.map((goal) => {
               const progress = Math.min(
                 (currentStreak / goal.target_days) * 100,
                 100,
